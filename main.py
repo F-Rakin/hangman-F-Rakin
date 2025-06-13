@@ -99,22 +99,22 @@ def draw_hangman():
 
     # Draw hangman body parts based on attempts
     if attempts > 0:
-        canvas.create_oval(100, 80, 120, 100, width=2, outline="red")         # Head
+        canvas.create_oval(140, 80, 160, 100, width=2, outline="red")         # Head
     if attempts > 1:
-        canvas.create_line(110, 100, 110, 150, width=2, fill="red")           # Body
+        canvas.create_line(150, 100, 150, 150, width=2, fill="red")           # Body
     if attempts > 2:
-        canvas.create_line(110, 120, 90, 140, width=2, fill="red")            # Left Arm
+        canvas.create_line(150, 120, 130, 140, width=2, fill="red")            # Left Arm
     if attempts > 3:
-        canvas.create_line(110, 120, 130, 140, width=2, fill="red")           # Right Arm
+        canvas.create_line(150, 120, 170, 140, width=2, fill="red")           # Right Arm
     if attempts > 4:
-        canvas.create_line(110, 150, 90, 180, width=2, fill="red")            # Left Leg
+        canvas.create_line(150, 150, 130, 180, width=2, fill="red")            # Left Leg
     if attempts > 5:
-        canvas.create_line(110, 150, 130, 180, width=2, fill="red")           # Right Leg
+        canvas.create_line(150, 150, 170, 180, width=2, fill="red")           # Right Leg
 
 # ---------------------- GUI Layout ----------------------
 
 # Create left frame to hold scaffold and word display
-left_frame = ctk.CTkFrame(app, width=250)
+left_frame = ctk.CTkFrame(app, width=350)
 left_frame.pack(side="left", fill="both", expand=False, padx=10, pady=10)
 
 # Create right frame to hold letter buttons
@@ -122,11 +122,11 @@ right_frame = ctk.CTkFrame(app)
 right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
 # Label to show chosen category
-category_label = ctk.CTkLabel(left_frame, text="Category: ", font=("Arial", 14))
+category_label = ctk.CTkLabel(left_frame, text="Category: ", font=("Arial", 18))
 category_label.pack(pady=(0, 10))
 
 # Canvas to draw the hangman
-canvas = ctk.CTkCanvas(left_frame, width=200, height=250, bg="white")
+canvas = ctk.CTkCanvas(left_frame, width=250, height=300, bg="white")
 canvas.pack()
 
 # Display the word with dashes and revealed letters
@@ -134,7 +134,7 @@ word_display = ctk.CTkLabel(left_frame, text="_ _ _ _ _", font=("Courier", 20))
 word_display.pack(pady=10)
 
 # Display guessed letters
-guessed_display = ctk.CTkLabel(left_frame, text="Guessed: ", font=("Arial", 12))
+guessed_display = ctk.CTkLabel(left_frame, text="Guessed: ", font=("Arial", 14))
 guessed_display.pack()
 
 # Frame to hold letter buttons in a grid
@@ -152,17 +152,14 @@ for i, btn in enumerate(letter_buttons):
     btn.configure(command=lambda b=btn, l=btn.cget("text"): guess_letter(l, b))
     btn.grid(row=i//6, column=i%6, padx=5, pady=5)
 
-# Frame for bottom control buttons
-bottom_frame = ctk.CTkFrame(app)
-bottom_frame.pack(side="bottom", pady=10)
 
 # Button to restart game
-restart_btn = ctk.CTkButton(bottom_frame, text="Restart", command=new_game)
+restart_btn = ctk.CTkButton(right_frame, text="Restart", command=new_game)
 restart_btn.pack(side="left", padx=10)
 
 # Button to quit the game
-quit_btn = ctk.CTkButton(bottom_frame, text="Quit", command=app.destroy)
-quit_btn.pack(side="left", padx=10)
+quit_btn = ctk.CTkButton(right_frame, text="Quit", command=app.destroy)
+quit_btn.pack(side="right", padx=10)
 
 # Start the first game
 new_game()
