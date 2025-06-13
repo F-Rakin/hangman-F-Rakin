@@ -1,119 +1,169 @@
 # F-Rakin_text_based_hangman
 
-# Import necessary modules for the game
-import requests
-import random
+# Import required modules
+import customtkinter as ctk                    # CustomTkinter for modern GUI
+import tkinter.messagebox as msgbox            # Message boxes for win/loss alerts
+import requests                                 # To make API calls to Datamuse
+import random                                   # To randomly choose category or word
 
-def get_word_from_datamuse(category: str) -> str:
-    """
-    Does an API call to Datamuse usign a specific category to get a random associated word
-    """
+# Constants for game settings
+MAX_ATTEMPTS = 6                                # Total allowed wrong guesses
+CATEGORIES = ['fruits', 'animals', 'colors', 'sports', 'foods']   # Categories for word selection
+
+# App configuration setup
+ctk.set_appearance_mode("dark")                 # Set dark mode for modern look
+ctk.set_default_color_theme("blue")            # Set accent color theme
+
+# Create the main application window
+app = ctk.CTk()
+app.title("Hangman")
+app.geometry("600x500")                         # Set window size
+
+# Initialize global variables for game state
+selected_word = ""                              # Word chosen from the API
+display_word = []                               # List to show current word progress with dashes
+guessed_letters = set()                         # Set of letters already guessed
+attempts = 0                                     # Count of incorrect guesses
+correct_letters = set()                         # Set of correct letters in the selected word
+
+# Function to make API call and fetch a word from Datamuse based on chosen category
+def get_word_from_datamuse(category):
     url = f"https://api.datamuse.com/words?rel_trg={category}&max=100"
     response = requests.get(url)
-
-    # If the API call returns an error display message
     if response.status_code != 200:
-        print(f"❌ Error: Status code {response.status_code}")
+        msgbox.showerror("API Error", f"Failed to fetch word. Status: {response.status_code}")
         return None
+    words = [w['word'] for w in response.json() if w['word'].isalpha() and len(w['word']) > 2]  # Filter out symbols and short words
+    return random.choice(words).upper() if words else None
 
-    # Format response into JSON 
-    words = response.json()
-
-    # Filter to keep only alphabetic words (remove phrases or hyphenated terms)
-    # Make List of valid words
-    valid_words = [word['word'] for word in words if word['word'].isalpha()]        # Use isalpha function to check for alphabets
-
-    # If no valid word is returned from the category in API call
-    if not valid_words:
-        print(f"⚠️ No usable words found for category '{category}'.")
-        return None
-
-    # Return a randomly chose word from the list
-    return random.choice(valid_words).upper()
-
-def hangman_game() -> str:
-    """
-    This function takes user input and displays progress for the game
-    """
-
-    # Randomly choose a category from the possible options
-    categories = ['fruits', 'animals', 'colors', 'sports', 'foods']
-    category = random.choice(categories)
-
-    # Call function to get a word from the API
-    selected_word = get_word_from_datamuse(category)
-
-    # Display error message if a word could not be found
+# Start a new game and reset all game variables
+def new_game():
+    global selected_word, display_word, guessed_letters, attempts, correct_letters
+    guessed_letters.clear()                    # Clear previous guesses
+    attempts = 0                                # Reset attempts
+    category = random.choice(CATEGORIES)        # Choose random category
+    selected_word = get_word_from_datamuse(category)  # Get word from API
     if not selected_word:
-        print("❌ Could not fetch a word. Try again.")
         return
+    correct_letters = set(selected_word)        # Break chosen word into set of letters
+    display_word = ['_' for _ in selected_word] # Add dash for each letter in display word
+    category_label.configure(text=f"Category: {category.title()}")
+    update_display()                            # Show word and guessed letters
+    for btn in letter_buttons:
+        btn.configure(state="normal")           # Enable all letter buttons
+    draw_hangman()                              # Reset drawing
 
-    # Use a set instead of list to not allow duplicate inputs
-    guessed_letters = set()
-
-    # Seperate all letters in the chosen word as seperate objects in the set
-    correct_letters = set(selected_word)
-
-    # Display a dash for every letter in the chosen word
-    display_word = ['_' for _ in selected_word]
-
-    # Available attempts
-    max_attempts = 6
-    attempts = 0
-
-    # Create a simple UI
-    print(f"\n📚 Category: {category.capitalize()}")
-    print("🎮 Let's play Hangman!")
-    print("Word: " + " ".join(display_word))
-
-    # Loop for guessing letters
-    while attempts < max_attempts and set(display_word) != correct_letters:     # Attempts are remaining and all correct letters are not guessed
-        guess = input("🔤 Enter a letter: ").upper()
-
-        # If a non-alphabet or more than 1 letter is inputted
-        if not guess.isalpha() or len(guess) != 1:
-
-            # Display error message
-            print("⚠️ Please enter a single alphabetical character.")
-            continue
-
-        # If user has already guessed the letter before
-        if guess in guessed_letters:
-            print("ℹ️ You already guessed that letter.")
-            continue
-
-        # Add guess to guessed_letters set
-        guessed_letters.add(guess)
-
-        # If guessed letter is in the chosen word
-        if guess in correct_letters:
-
-            # Loop through letters in chosen word
-            for i, letter in enumerate(selected_word):
-
-                # Replace dash as the letter if the guess is correct
-                if letter == guess:
-                    display_word[i] = guess
-            print("✅ Correct!")
-
-        # If wrong letter is guessed, add 1 to attempts
-        else:
-            attempts += 1
-            print(f"❌ Wrong. {max_attempts - attempts} attempts remaining.")
-
-        # Display current progress
-        print("\nWord: " + " ".join(display_word))
-        print("Guessed letters: " + ", ".join(sorted(guessed_letters)))
-
-    # If all letters are guessed display final message
-    if set(display_word) == correct_letters:
-        print(f"\n🎉 You won! The word was: {selected_word}")
-
-    # If all attempts are over
+# Handle when a letter is guessed by the player
+def guess_letter(letter, btn):
+    global attempts
+    btn.configure(state="disabled")             # Disable the clicked button
+    guessed_letters.add(letter)                 # Add to guessed letters
+    if letter in correct_letters:               # If correct guess
+        for i, ltr in enumerate(selected_word):
+            if ltr == letter:
+                display_word[i] = letter        # Replace dash with the guessed letter
     else:
-        print(f"\n💀 Game over. The word was: {selected_word}")
+        attempts += 1                           # Increase wrong attempt count
+    update_display()
+    draw_hangman()                              # Update drawing based on attempts
+    check_game_status()                         # Check if player won or lost
 
-# Run the game
-if __name__ == "__main__":
-    hangman_game()
+# Update word display and guessed letter tracker
+def update_display():
+    word_display.configure(text=" ".join(display_word))
+    guessed_display.configure(text="Guessed: " + ", ".join(sorted(guessed_letters)))
 
+# Check if player has won or lost the game
+def check_game_status():
+    if set(display_word) == correct_letters:
+        msgbox.showinfo("You Won!", f"Congratulations! The word was: {selected_word}")
+        disable_letters()                        # End game and disable buttons
+    elif attempts >= MAX_ATTEMPTS:
+        msgbox.showinfo("Game Over", f"You lost! The word was: {selected_word}")
+        disable_letters()
+
+# Disable all letter buttons when game ends
+def disable_letters():
+    for btn in letter_buttons:
+        btn.configure(state="disabled")
+
+# Draw the hangman figure step-by-step
+def draw_hangman():
+    canvas.delete("all")                         # Clear previous drawing
+    base_x, base_y = 40, 250
+    # Scaffold structure
+    canvas.create_line(base_x, base_y, base_x + 100, base_y, width=8)           # Base
+    canvas.create_line(base_x + 50, base_y, base_x + 50, base_y - 200, width=8) # Vertical pole
+    canvas.create_line(base_x + 50, base_y - 200, base_x + 110, base_y - 200, width=8) # Top bar
+    canvas.create_line(base_x + 110, base_y - 200, base_x + 110, base_y - 170, width=8) # Rope
+
+    # Draw hangman body parts based on attempts
+    if attempts > 0:
+        canvas.create_oval(100, 80, 120, 100, width=2, outline="red")         # Head
+    if attempts > 1:
+        canvas.create_line(110, 100, 110, 150, width=2, fill="red")           # Body
+    if attempts > 2:
+        canvas.create_line(110, 120, 90, 140, width=2, fill="red")            # Left Arm
+    if attempts > 3:
+        canvas.create_line(110, 120, 130, 140, width=2, fill="red")           # Right Arm
+    if attempts > 4:
+        canvas.create_line(110, 150, 90, 180, width=2, fill="red")            # Left Leg
+    if attempts > 5:
+        canvas.create_line(110, 150, 130, 180, width=2, fill="red")           # Right Leg
+
+# ---------------------- GUI Layout ----------------------
+
+# Create left frame to hold scaffold and word display
+left_frame = ctk.CTkFrame(app, width=250)
+left_frame.pack(side="left", fill="both", expand=False, padx=10, pady=10)
+
+# Create right frame to hold letter buttons
+right_frame = ctk.CTkFrame(app)
+right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+# Label to show chosen category
+category_label = ctk.CTkLabel(left_frame, text="Category: ", font=("Arial", 14))
+category_label.pack(pady=(0, 10))
+
+# Canvas to draw the hangman
+canvas = ctk.CTkCanvas(left_frame, width=200, height=250, bg="white")
+canvas.pack()
+
+# Display the word with dashes and revealed letters
+word_display = ctk.CTkLabel(left_frame, text="_ _ _ _ _", font=("Courier", 20))
+word_display.pack(pady=10)
+
+# Display guessed letters
+guessed_display = ctk.CTkLabel(left_frame, text="Guessed: ", font=("Arial", 12))
+guessed_display.pack()
+
+# Frame to hold letter buttons in a grid
+letters_frame = ctk.CTkFrame(right_frame)
+letters_frame.pack(pady=20)
+
+letter_buttons = []
+# Loop through all letters and create a button for each
+for i, letter in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+    btn = ctk.CTkButton(letters_frame, text=letter, width=40, command=lambda l=letter, b=None: guess_letter(l, b))
+    letter_buttons.append(btn)
+
+# Properly assign command to each button
+for i, btn in enumerate(letter_buttons):
+    btn.configure(command=lambda b=btn, l=btn.cget("text"): guess_letter(l, b))
+    btn.grid(row=i//6, column=i%6, padx=5, pady=5)
+
+# Frame for bottom control buttons
+bottom_frame = ctk.CTkFrame(app)
+bottom_frame.pack(side="bottom", pady=10)
+
+# Button to restart game
+restart_btn = ctk.CTkButton(bottom_frame, text="Restart", command=new_game)
+restart_btn.pack(side="left", padx=10)
+
+# Button to quit the game
+quit_btn = ctk.CTkButton(bottom_frame, text="Quit", command=app.destroy)
+quit_btn.pack(side="left", padx=10)
+
+# Start the first game
+new_game()
+app.mainloop()
