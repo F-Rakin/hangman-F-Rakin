@@ -7,6 +7,7 @@ import requests                                 # To make API calls to Datamuse
 import random                                   # To randomly choose category or word
 import time                                     # For animation delays
 import winsound                                 # For sound effects (Windows only)
+import threading                                # For non-blocking timer updates
 
 # ---------------- CONSTANTS ----------------
 MAX_ATTEMPTS = 6                                # Total allowed wrong guesses
@@ -28,6 +29,19 @@ guessed_letters = set()                         # Tracks letters already guessed
 attempts = 0                                     # Counter for incorrect guesses
 correct_letters = set()                         # Set of correct letters in the word
 hint_count = 0                                   # Counter for hints used
+start_time = None                                # Track start time of game
+timer_running = False                            # Track whether the timer is running
+
+# ---------------- TIMER FUNCTION ----------------
+def update_timer():
+    """Continuously updates the timer label in the GUI."""
+    global timer_running
+    while timer_running:
+        elapsed = int(time.time() - start_time)
+        mins, secs = divmod(elapsed, 60)
+        timer_label.configure(text=f"Time: {mins:02d}:{secs:02d}")
+        time.sleep(1)
+
 
 # ---------------- WORD FETCH FUNCTION ----------------
 def get_word_from_datamuse(category):
@@ -48,7 +62,7 @@ def new_game():
     """
     Starts a new game by resetting variables and getting a new word
     """
-    global selected_word, display_word, guessed_letters, attempts, correct_letters
+    global selected_word, display_word, guessed_letters, attempts, correct_letters, start_time, timer_running
     guessed_letters.clear()                     # Reset guessed letters
     attempts = 0                                 # Reset attempts
     hint_count = 0
@@ -67,6 +81,11 @@ def new_game():
     hint_btn.configure(state="normal", text=f"Hint ({MAX_HINTS - hint_count} left)")
 
     draw_hangman()                               # Draw initial state of hangman
+
+    # Start timer
+    start_time = time.time()
+    timer_running = True
+    threading.Thread(target=update_timer, daemon=True).start()
 
 
 # ---------------- HANDLE GUESSED LETTER ----------------
@@ -140,11 +159,13 @@ def check_game_status():
         jump_effect()                            # Play jump animation
         winsound.MessageBeep(winsound.MB_ICONASTERISK)  # Win sound
         msgbox.showinfo("🎉 You Won! 🎉", f"Congratulations! 🎊 The word was: {selected_word} 😄")
+        timer_running = False
         new_game()                               # Start new game
 
     elif attempts >= MAX_ATTEMPTS:               # If out of attempts
         winsound.MessageBeep(winsound.MB_ICONHAND)  # Loss sound
         msgbox.showinfo("💀 Game Over", f"You lost! The word was: {selected_word} 😢")
+        timer_running = False
         new_game()
 
 
@@ -236,7 +257,10 @@ for i, btn in enumerate(letter_buttons):
     btn.grid(row=i//6, column=i%6, padx=5, pady=5)  # Arrange in grid
 
 hint_btn = ctk.CTkButton(left_frame, text=f"Hint ({MAX_HINTS} left)", command=use_hint)
-hint_btn.pack(pady=(10, 0))
+hint_btn.pack(side= "bottom", pady=20)                         # Hint button
+
+timer_label = ctk.CTkLabel(left_frame, text="Time: 00:00", font=("Arial", 18))
+timer_label.pack(pady=20)                       # On-Screen Timer 
 
 restart_btn = ctk.CTkButton(right_frame, text="Restart", command=new_game)
 restart_btn.pack(side="left", padx=10)           # Restart button
