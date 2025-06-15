@@ -10,6 +10,7 @@ import winsound                                 # For sound effects (Windows onl
 
 # ---------------- CONSTANTS ----------------
 MAX_ATTEMPTS = 6                                # Total allowed wrong guesses
+MAX_HINTS = 3                                   # Maximum number of hint
 CATEGORIES = ['fruits', 'animals', 'colors', 'sports', 'foods']   # List of word categories
 
 # ---------------- APP CONFIG ----------------
@@ -26,6 +27,7 @@ display_word = []                                # Displays correctly guessed le
 guessed_letters = set()                         # Tracks letters already guessed
 attempts = 0                                     # Counter for incorrect guesses
 correct_letters = set()                         # Set of correct letters in the word
+hint_count = 0                                   # Counter for hints used
 
 # ---------------- WORD FETCH FUNCTION ----------------
 def get_word_from_datamuse(category):
@@ -49,6 +51,7 @@ def new_game():
     global selected_word, display_word, guessed_letters, attempts, correct_letters
     guessed_letters.clear()                     # Reset guessed letters
     attempts = 0                                 # Reset attempts
+    hint_count = 0
     category = random.choice(CATEGORIES)         # Pick a random category
     selected_word = get_word_from_datamuse(category)  # Get a word using API
 
@@ -60,7 +63,9 @@ def new_game():
     update_display()                             # Refresh display
 
     for btn in letter_buttons:
-        btn.configure(state="normal")           # Enable all letter buttons
+        btn.configure(state="normal")
+    hint_btn.configure(state="normal", text=f"Hint ({MAX_HINTS - hint_count} left)")
+
     draw_hangman()                               # Draw initial state of hangman
 
 
@@ -85,6 +90,36 @@ def guess_letter(letter, btn):
     update_display()                             # Update word and guessed letters
     draw_hangman()                               # Draw next hangman stage
     check_game_status()                          # Check win/lose condition
+
+
+# ---------------- HINT FUNCTION ----------------
+def use_hint():
+    """Reveals one hidden letter from the selected word."""
+    global hint_count
+    if hint_count >= MAX_HINTS:
+        return  # No more hints available
+
+    # Identify indices of unrevealed letters
+    remaining_indices = [i for i, l in enumerate(display_word) if l == '_']
+    if not remaining_indices:
+        return  # All letters already revealed
+
+    # Randomly choose a hidden letter to reveal
+    reveal_index = random.choice(remaining_indices)
+    reveal_letter = selected_word[reveal_index]
+    display_word[reveal_index] = reveal_letter  # Reveal it in the display
+    guessed_letters.add(reveal_letter)         # Add to guessed list
+    hint_count += 1                            # Increment hint usage
+
+    update_display()       # Refresh GUI display
+    draw_hangman()        # Redraw hangman if needed
+    check_game_status()   # Check if this causes a win
+
+    # Update hint button text or disable it
+    if hint_count >= MAX_HINTS:
+        hint_btn.configure(state="disabled", text="No Hints Left")
+    else:
+        hint_btn.configure(text=f"Hint ({MAX_HINTS - hint_count} left)")
 
 
 # ---------------- UPDATE DISPLAY ----------------
@@ -199,6 +234,9 @@ for i, letter in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
 for i, btn in enumerate(letter_buttons):
     btn.configure(command=lambda b=btn, l=btn.cget("text"): guess_letter(l, b))
     btn.grid(row=i//6, column=i%6, padx=5, pady=5)  # Arrange in grid
+
+hint_btn = ctk.CTkButton(left_frame, text=f"Hint ({MAX_HINTS} left)", command=use_hint)
+hint_btn.pack(pady=(10, 0))
 
 restart_btn = ctk.CTkButton(right_frame, text="Restart", command=new_game)
 restart_btn.pack(side="left", padx=10)           # Restart button
