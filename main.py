@@ -73,11 +73,14 @@ def guess_letter(letter, btn):
     btn.configure(state="disabled")             # Disable clicked button
     guessed_letters.add(letter)                  # Track guessed letter
     if letter in correct_letters:                # If letter is correct
+        flash_screen("green")
+
         for i, ltr in enumerate(selected_word):
             if ltr == letter:
                 display_word[i] = letter         # Reveal letter in display
 
     else:
+        flash_screen("red")
         attempts += 1                            # Increment wrong attempt
     update_display()                             # Update word and guessed letters
     draw_hangman()                               # Draw next hangman stage
@@ -124,6 +127,19 @@ def jump_effect():
         canvas.after(100)                         # Delay
 
 
+# ---------------- SCREEN FLASH EFFECT ----------------
+def flash_screen(color):
+    """
+    Flashes the screen background color briefly to indicate correct (green) or wrong (red) guess
+    """
+    original_color = "#242424"  # Default dark mode color in CTk
+    main_frame.configure(fg_color=color)
+    app.update()
+    time.sleep(0.15)
+    main_frame.configure(fg_color=original_color)
+    app.update()
+
+
 # ---------------- DRAW HANGMAN ----------------
 def draw_hangman():
     """
@@ -151,10 +167,13 @@ def draw_hangman():
 
 # ---------------- GUI LAYOUT ----------------
 
-left_frame = ctk.CTkFrame(app, width=350)        # Frame for left side (drawing and labels)
+main_frame = ctk.CTkFrame(app)
+main_frame.pack(fill="both", expand=True)
+
+left_frame = ctk.CTkFrame(main_frame, width=350)      # Frame for left side (drawing and labels)
 left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
 
-right_frame = ctk.CTkFrame(app)                  # Frame for letter buttons
+right_frame = ctk.CTkFrame(main_frame)                 # Frame for letter buttons
 right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
 category_label = ctk.CTkLabel(left_frame, text="Category: ", font=("Arial", 18))
