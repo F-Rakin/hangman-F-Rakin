@@ -34,7 +34,9 @@ timer_running = False                            # Track whether the timer is ru
 
 # ---------------- TIMER FUNCTION ----------------
 def update_timer():
-    """Continuously updates the timer label in the GUI."""
+    """
+    Continuously updates the timer label in the GUI
+    """
     global timer_running
     while timer_running:
         elapsed = int(time.time() - start_time)
@@ -62,7 +64,7 @@ def new_game():
     """
     Starts a new game by resetting variables and getting a new word
     """
-    global selected_word, display_word, guessed_letters, attempts, correct_letters, start_time, timer_running
+    global selected_word, display_word, guessed_letters, attempts, correct_letters, start_time, timer_running, hint_count
     guessed_letters.clear()                     # Reset guessed letters
     attempts = 0                                 # Reset attempts
     hint_count = 0
@@ -72,13 +74,13 @@ def new_game():
     if not selected_word:
         return
     correct_letters = set(selected_word)         # Store correct letters
-    display_word = ['_' for _ in selected_word]  # Fill display with blanks
+    display_word = ['_' if l.isalpha() else l for l in selected_word]
     category_label.configure(text=f"Category: {category.title()}")  # Update category label
     update_display()                             # Refresh display
 
     for btn in letter_buttons:
         btn.configure(state="normal")
-    hint_btn.configure(state="normal", text=f"Hint ({MAX_HINTS - hint_count} left)")
+    hint_btn.configure(state="normal", text=f"Hint ({MAX_HINTS - hint_count} left)")  # <-- Re-enable hint button
 
     draw_hangman()                               # Draw initial state of hangman
 
@@ -97,14 +99,14 @@ def guess_letter(letter, btn):
     btn.configure(state="disabled")             # Disable clicked button
     guessed_letters.add(letter)                  # Track guessed letter
     if letter in correct_letters:                # If letter is correct
-        flash_screen("green")
+        flash_screen("#228B22")
 
         for i, ltr in enumerate(selected_word):
             if ltr == letter:
                 display_word[i] = letter         # Reveal letter in display
 
     else:
-        flash_screen("red")
+        flash_screen("#8B0000")
         attempts += 1                            # Increment wrong attempt
     update_display()                             # Update word and guessed letters
     draw_hangman()                               # Draw next hangman stage
@@ -113,7 +115,9 @@ def guess_letter(letter, btn):
 
 # ---------------- HINT FUNCTION ----------------
 def use_hint():
-    """Reveals one hidden letter from the selected word."""
+    """
+    Reveals one hidden letter from the selected word
+    """
     global hint_count
     if hint_count >= MAX_HINTS:
         return  # No more hints available
@@ -138,7 +142,9 @@ def use_hint():
     if hint_count >= MAX_HINTS:
         hint_btn.configure(state="disabled", text="No Hints Left")
     else:
-        hint_btn.configure(text=f"Hint ({MAX_HINTS - hint_count} left)")
+        remaining = MAX_HINTS - hint_count
+        hint_btn.configure(state="normal", text=f"Hint ({remaining} left)")
+
 
 
 # ---------------- UPDATE DISPLAY ----------------
@@ -189,10 +195,10 @@ def flash_screen(color):
     Flashes the screen background color briefly to indicate correct (green) or wrong (red) guess
     """
     original_color = "#242424"  # Default dark mode color in CTk
-    main_frame.configure(fg_color=color)
+    main_frame.configure(fg_color=color)    # Flash green or red
     app.update()
     time.sleep(0.15)
-    main_frame.configure(fg_color=original_color)
+    main_frame.configure(fg_color=original_color)   # Go back to original color
     app.update()
 
 
