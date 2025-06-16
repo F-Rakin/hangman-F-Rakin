@@ -8,6 +8,7 @@ import random                                   # To randomly choose category or
 import time                                     # For animation delays
 import winsound                                 # For sound effects (Windows only)
 import threading                                # For non-blocking timer updates
+import pygame                                   # For BGM
 
 # ---------------- CONSTANTS ----------------
 MAX_ATTEMPTS = 6                                # Total allowed wrong guesses
@@ -20,7 +21,7 @@ ctk.set_default_color_theme("blue")             # Set blue accent color
 
 app = ctk.CTk()                                 # Create the main application window
 app.title("Py-Hangman")                         # Set window title
-app.geometry("700x550")                         # Set fixed window size
+app.geometry("700x600")                         # Set fixed window size
 
 # ---------------- GAME STATE VARIABLES ----------------
 selected_word = ""                               # Stores the word to guess
@@ -83,7 +84,7 @@ def new_game():
     hint_btn.configure(state="normal", text=f"Hint ({MAX_HINTS - hint_count} left)")  # <-- Re-enable hint button
 
     draw_hangman()                               # Draw initial state of hangman
-
+    play_background_music()                      # Play BGM
     # Start timer
     start_time = time.time()
     timer_running = True
@@ -202,6 +203,23 @@ def flash_screen(color):
     app.update()
 
 
+def play_background_music(filename="bgm.mp3", volume=0.5):
+    """
+    Initializes and plays background music in a loop using pygame.
+    """
+    # Initialize the pygame mixer module for sound playback
+    pygame.mixer.init()
+
+    # Load the music file (must be a supported format like .wav or .mp3)
+    pygame.mixer.music.load(filename)
+
+    # Set the playback volume (0.0 = mute, 1.0 = max volume)
+    pygame.mixer.music.set_volume(volume)
+
+    # Start playing the music and loop it indefinitely (-1 = infinite loop)
+    pygame.mixer.music.play(-1)
+
+
 # ---------------- DRAW HANGMAN ----------------
 def draw_hangman():
     """
@@ -226,6 +244,7 @@ def draw_hangman():
         canvas.create_line(150, 150, 130, 180, width=2, fill="green", tags="py")      # Left leg
     if attempts > 5:
         canvas.create_line(150, 150, 170, 180, width=2, fill="green", tags="py")      # Right leg
+
 
 # ---------------- GUI LAYOUT ----------------
 
